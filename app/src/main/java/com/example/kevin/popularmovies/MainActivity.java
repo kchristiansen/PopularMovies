@@ -1,39 +1,43 @@
 package com.example.kevin.popularmovies;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.support.v7.app.ActionBarActivity;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity
+        implements MainActivityFragment.OnMovieSelectedListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-    }
 
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if(findViewById(R.id.fragment_container)!=null){
+            if(savedInstanceState!=null){
+                return;
+            }
         }
 
-        return super.onOptionsItemSelected(item);
+        MainActivityFragment collectionFragment = new MainActivityFragment();
+        collectionFragment.setArguments(getIntent().getExtras());
+        getSupportFragmentManager()
+                .beginTransaction()
+                .add(R.id.fragment_container, collectionFragment)
+                .commit();
+    }
+
+    @Override
+    public void onMovieSelected(MainActivityFragment.Movie m) {
+        MovieDetails detailFragment = (MovieDetails) getSupportFragmentManager().findFragmentById(R.id.fragment_movie_detail);
+        if(detailFragment!=null) {
+            detailFragment.updateMovie(m);
+        }else{
+            detailFragment = MovieDetails.newInstance(m);
+
+            android.support.v4.app.FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.fragment_container, detailFragment);
+            transaction.addToBackStack(null);
+            transaction.commit();
+        }
     }
 }

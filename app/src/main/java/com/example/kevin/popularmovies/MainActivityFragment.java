@@ -1,53 +1,165 @@
 package com.example.kevin.popularmovies;
 
-import android.app.Application;
-import android.media.Image;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Date;
 
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment {
+public class MainActivityFragment extends android.support.v4.app.Fragment {
+
+    private OnMovieSelectedListener mCallback;
+    private int gridPosition=0;
+    private String currentSort;
 
     public MainActivityFragment() {
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.menu_main, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        currentSort = PreferenceManager.getDefaultSharedPreferences(getActivity())
+                .getString("sortby", "popularity.desc");
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            Intent intent = new Intent(getActivity(), SettingsActivity.class);
+            startActivity(intent);
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+    public interface OnMovieSelectedListener {
+        void onMovieSelected(Movie m);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try{
+            mCallback = (OnMovieSelectedListener) activity;
+        } catch (ClassCastException e){
+            throw new ClassCastException(activity.toString()
+                    + " must implement OnMovieSelectedListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mCallback=null;
+    }
+
+    private Context mContext;
+    private MovieAdapter mMovieAdapter;
+    private GridView mGrid;
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mContext = getActivity();
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        GridView grid = (GridView) rootView.findViewById(R.id.gridViewMovies);
-        MovieAdapter mMovieAdapter = new MovieAdapter();
-        grid.setAdapter(mMovieAdapter);
+        mGrid = (GridView) rootView.findViewById(R.id.gridViewMovies);
+        mMovieAdapter = new MovieAdapter();
+        mGrid.setAdapter(mMovieAdapter);
+        mGrid.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                mGrid.setSelection(gridPosition);
+            }
+        });
+        mGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                gridPosition = position;
+                Movie m = (Movie) mMovieAdapter.getItem(position);
+                mCallback.onMovieSelected(m);
+            }
+        });
+        //getPopularMovies();
         return rootView;
+    }
+
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("sort", currentSort);
+        outState.putInt("gridPosition", mGrid.getFirstVisiblePosition());
+    }
+
+    @Override
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if(savedInstanceState!=null) {
+            gridPosition = savedInstanceState.getInt("gridPosition");
+            currentSort = savedInstanceState.getString("sort");
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        String newSort = PreferenceManager.getDefaultSharedPreferences(getActivity())
+                .getString("sortby", "popularity.desc");
+        if (currentSort != newSort) {
+            currentSort = newSort;
+            gridPosition = 0;
+        }
+
+        getPopularMovies();
+    }
+
+    private void getPopularMovies(){
+        new MovieDownloader().execute();
+
     }
 
     public class MovieAdapter extends BaseAdapter{
         ArrayList<Movie> mMovies;
+        final String imageUrl = getResources().getString(R.string.moviedb_base_image_url) + getResources().getString(R.string.moviedb_image_size);
         @Override
         public int getCount() {
             if(mMovies==null) return 0;
@@ -68,23 +180,48 @@ public class MainActivityFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
 
-            return null;
+            LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
+            if(convertView==null){
+                convertView = inflater.inflate(R.layout.main_poster_thumbnail, null);
+            }
 
+            Movie movieInfo = mMovies.get(position);
+
+            MovieViewHolder holder = (MovieViewHolder) convertView.getTag();
+
+            if(holder==null) {
+                holder = new MovieViewHolder();
+                holder.movieInfo = movieInfo;
+                holder.moviePoster = (ImageView) convertView.findViewById(R.id.mainPosterThumb);
+
+                holder.moviePoster.setImageResource(R.mipmap.ic_launcher);
+                Picasso.with(mContext)
+                        .load(imageUrl + movieInfo.mPosterUri)
+                        .resize(158,237)
+                        .centerCrop()
+                        .into(holder.moviePoster);
+            }
+
+            if(holder.movieInfo.mID !=movieInfo.mID){
+                holder.movieInfo=movieInfo;
+                Picasso.with(mContext)
+                        .load(imageUrl + movieInfo.mPosterUri)
+                        .resize(158,237)
+                        .centerInside()
+                        .into(holder.moviePoster);
+            }
+
+            return convertView;
         }
     }
 
     public class MovieViewHolder{
-        int position;
         Movie movieInfo;
         ImageView moviePoster;
     }
-    public class DownloadParams{
 
-    }
-
-    public class Movie{
+    public class Movie implements Serializable {
         String mID;
-        Image mThumbnail;
         String mTitle;
         String mSynopsis;
         double mRating;
@@ -92,81 +229,34 @@ public class MainActivityFragment extends Fragment {
         String mPosterUri;
     }
 
-    public class MovieDownloader extends AsyncTask<DownloadParams,Void, Void> {
+    public class MovieDownloader extends AsyncTask<String,Void, ArrayList<Movie>> {
         final String LOG_TAG = "MovieJsonDownload";
         ArrayList<Movie> movies = new ArrayList<>();
         @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
+        protected void onPostExecute(ArrayList<Movie> movieList) {
+            super.onPostExecute(movieList);
             // Update adapter...
+            mMovieAdapter.mMovies = movieList;
+            mMovieAdapter.notifyDataSetChanged();
         }
 
         @Override
-        protected Void doInBackground(DownloadParams... params) {
+        protected ArrayList<Movie> doInBackground(String... params) {
 
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-
-            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=[YOUR API KEY]";
+            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + currentSort + "&api_key=b002976a12de8c9c6ae1d89a3d0faea2";
             Uri builtUri = Uri.parse(BASEURL);
+
             // Will contain the raw JSON response as a string.
-            String forecastJsonStr = null;
+            String movieDbJsonStr = JsonDataFetch.fetchJson(builtUri);
 
             try {
-                URL url = new URL(builtUri.toString());
-
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Attempt to get it from raw
-                    // I don't have a connection right now.
-                    // Could also get cache the last successful response and read it here...
-                    int id = getResources().getIdentifier("movies", "raw", this.getClass().getPackage().getName());
-                    inputStream = getResources().openRawResource(id);
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
-                }
-                forecastJsonStr = buffer.toString();
-                movies = getMoviesFromJson(forecastJsonStr);
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attempting
-                // to parse it.
-
-
-            } catch (JSONException e) {
+                movies = getMoviesFromJson(movieDbJsonStr);
+            }
+            catch (JSONException e){
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e(LOG_TAG, "Error closing stream", e);
-                    }
-                }
             }
-            return null;
+            return movies;
         }
 
         ArrayList<Movie> getMoviesFromJson(String json) throws JSONException {

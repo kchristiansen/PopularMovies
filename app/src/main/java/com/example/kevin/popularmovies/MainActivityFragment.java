@@ -35,8 +35,9 @@ import java.util.ArrayList;
 public class MainActivityFragment extends android.support.v4.app.Fragment {
 
     private OnMovieSelectedListener mCallback;
-    private int gridPosition=0;
-    private String currentSort;
+    private int mGridPosition = 0;
+    private String mCurrentSort;
+    private String mJsonMovieData;
 
     public MainActivityFragment() {
     }
@@ -54,7 +55,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        currentSort = PreferenceManager.getDefaultSharedPreferences(getActivity())
+        mCurrentSort = PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .getString("sortby", "popularity.desc");
 
         //noinspection SimplifiableIfStatement
@@ -105,19 +106,19 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         mGrid.setAdapter(mMovieAdapter);
         mGrid.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
-            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                mGrid.setSelection(gridPosition);
+            public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                mGrid.setSelection(mGridPosition);
             }
         });
         mGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                gridPosition = position;
+                mGridPosition = position;
                 Movie m = (Movie) mMovieAdapter.getItem(position);
                 mCallback.onMovieSelected(m);
             }
         });
-        //getPopularMovies();
         return rootView;
     }
 
@@ -125,16 +126,20 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("sort", currentSort);
-        outState.putInt("gridPosition", mGrid.getFirstVisiblePosition());
+        outState.putString("sort", mCurrentSort);
+        if(mGrid!=null) {
+            outState.putInt("gridPosition", mGrid.getFirstVisiblePosition());
+        }
+        outState.putString("movieJson", mJsonMovieData);
     }
 
     @Override
     public void onViewStateRestored(Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         if(savedInstanceState!=null) {
-            gridPosition = savedInstanceState.getInt("gridPosition");
-            currentSort = savedInstanceState.getString("sort");
+            mGridPosition = savedInstanceState.getInt("gridPosition");
+            mCurrentSort = savedInstanceState.getString("sort");
+            mJsonMovieData = savedInstanceState.getString("movieJson");
         }
     }
 
@@ -144,9 +149,10 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
 
         String newSort = PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .getString("sortby", "popularity.desc");
-        if (currentSort != newSort) {
-            currentSort = newSort;
-            gridPosition = 0;
+        if (mCurrentSort != newSort) {
+            mCurrentSort = newSort;
+            mGridPosition = 0;
+            mJsonMovieData = null;
         }
 
         getPopularMovies();
@@ -243,14 +249,18 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         @Override
         protected ArrayList<Movie> doInBackground(String... params) {
 
-            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + currentSort + "&api_key=b002976a12de8c9c6ae1d89a3d0faea2";
+            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=b002976a12de8c9c6ae1d89a3d0faea2";
             Uri builtUri = Uri.parse(BASEURL);
 
-            // Will contain the raw JSON response as a string.
-            String movieDbJsonStr = JsonDataFetch.fetchJson(builtUri);
+            // hit api if necessary...
+            if(mJsonMovieData==null || mJsonMovieData=="") {
+                // Will contain the raw JSON response as a string.
+                Log.v(LOG_TAG, "Hitting movie api: " + builtUri.toString() );
+                mJsonMovieData = JsonDataFetch.fetchJson(builtUri);
+            }
 
             try {
-                movies = getMoviesFromJson(movieDbJsonStr);
+                movies = getMoviesFromJson(mJsonMovieData);
             }
             catch (JSONException e){
                 Log.e(LOG_TAG, e.getMessage(), e);

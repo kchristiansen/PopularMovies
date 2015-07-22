@@ -10,17 +10,33 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class MovieDetails extends android.support.v4.app.Fragment {
 
-    View rootView;
+    private View mRootView;
+    private Movie mMovie;
 
-    public static MovieDetails newInstance(MainActivityFragment.Movie movie) {
+    public static MovieDetails newInstance(Movie movie) {
         MovieDetails fragment = new MovieDetails();
         Bundle args = new Bundle();
-        args.putSerializable("movie", movie);
+        args.putString("movie", movie.toJSON());
         fragment.setArguments(args);
 
         return fragment;
+    }
+
+    private static Movie deserializeMovie(String movieJson){
+        Movie movie = null;
+        try{
+            JSONObject jsonObject = new JSONObject(movieJson);
+            movie = Movie.newInstance(jsonObject);
+        }
+        catch(JSONException e){
+            e.printStackTrace();
+        }
+        return movie;
     }
 
     public MovieDetails() {
@@ -28,44 +44,58 @@ public class MovieDetails extends android.support.v4.app.Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        rootView = inflater.inflate(R.layout.fragment_movie_details, container, false);
+        mRootView = inflater.inflate(R.layout.fragment_movie_details, container, false);
         Bundle args = getArguments();
 
-        MainActivityFragment.Movie movie = (MainActivityFragment.Movie)args.getSerializable("movie");
+        Movie movie = deserializeMovie(args.getString("movie"));
+
         if(movie!=null)
         {
             updateMovie(movie);
         }
 
-        return rootView;
+        return mRootView;
     }
 
-    public void updateMovie(MainActivityFragment.Movie m) {
+    public void updateMovie(Movie m) {
+        mMovie = m;
         String baseMovieDbImageUrl = getResources().getString(R.string.moviedb_base_image_url) + getResources().getString(R.string.moviedb_image_size);
 
-        TextView title = (TextView) rootView.findViewById(R.id.detail_title);
-        TextView rating = (TextView) rootView.findViewById(R.id.detail_rating);
-        TextView releaseDate = (TextView) rootView.findViewById(R.id.detail_release_date);
-        TextView synopsis = (TextView) rootView.findViewById(R.id.detail_synopsis);
-        ImageView poster = (ImageView) rootView.findViewById(R.id.detail_movie_poster);
-        RatingBar starRating = (RatingBar) rootView.findViewById(R.id.detail_rating_stars);
+        TextView title = (TextView) mRootView.findViewById(R.id.detail_title);
+        TextView rating = (TextView) mRootView.findViewById(R.id.detail_rating);
+        TextView releaseDate = (TextView) mRootView.findViewById(R.id.detail_release_date);
+        TextView synopsis = (TextView) mRootView.findViewById(R.id.detail_synopsis);
+        ImageView poster = (ImageView) mRootView.findViewById(R.id.detail_movie_poster);
+        RatingBar starRating = (RatingBar) mRootView.findViewById(R.id.detail_rating_stars);
 
         title.setText(m.mTitle);
         releaseDate.setText(m.releaseDate);
         rating.setText("(" + String.valueOf(m.mRating) + "/10)");
         synopsis.setText(m.mSynopsis);
-        starRating.setRating((float)m.mRating / 2);
+        starRating.setRating(Float.parseFloat(m.mRating) / 2);
         Picasso.with(getActivity())
                 .load(baseMovieDbImageUrl + m.mPosterUri)
                 .resize(158,237)
                 .centerInside()
                 .into(poster);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("movie", mMovie.toJSON());
+    }
+
+    @Override
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if(savedInstanceState!=null) {
+            mMovie = deserializeMovie(savedInstanceState.getString("movie"));
+            if(mMovie!=null) {
+                updateMovie(mMovie);
+            }
+        }
     }
 }

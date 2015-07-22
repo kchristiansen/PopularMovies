@@ -27,7 +27,7 @@ public class MainActivity extends ActionBarActivity
     }
 
     @Override
-    public void onMovieSelected(MainActivityFragment.Movie m) {
+    public void onMovieSelected(Movie m) {
         MovieDetails detailFragment = (MovieDetails) getSupportFragmentManager().findFragmentById(R.id.fragment_movie_detail);
         if(detailFragment!=null) {
             detailFragment.updateMovie(m);

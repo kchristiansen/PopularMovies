@@ -25,7 +25,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 
 
@@ -226,15 +225,6 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         ImageView moviePoster;
     }
 
-    public class Movie implements Serializable {
-        String mID;
-        String mTitle;
-        String mSynopsis;
-        double mRating;
-        String releaseDate;
-        String mPosterUri;
-    }
-
     public class MovieDownloader extends AsyncTask<String,Void, ArrayList<Movie>> {
         final String LOG_TAG = "MovieJsonDownload";
         ArrayList<Movie> movies = new ArrayList<>();
@@ -271,26 +261,16 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
 
         ArrayList<Movie> getMoviesFromJson(String json) throws JSONException {
             ArrayList<Movie> movies = new ArrayList<>();
-
             final String RESULTS = "results";
-            final String ID = "id";
-            final String RATING = "vote_average";
-            final String TITLE = "title";
-            final String SYNOPSIS = "overview";
-            final String RELEASEDATE = "release_date";
-            final String POSTER="poster_path";
+
 
             JSONArray results= new JSONObject(json).getJSONArray(RESULTS);
             for(int i=0;i< results.length();i++){
                 JSONObject result = results.getJSONObject(i);
-                Movie m = new Movie();
-                m.mID = result.getString(ID);
-                m.mTitle = result.getString(TITLE);
-                m.mSynopsis = result.getString(SYNOPSIS);
-                m.mPosterUri = result.getString(POSTER);
-                m.releaseDate = result.getString(RELEASEDATE);
-                m.mRating = result.getDouble(RATING);
-                movies.add(m);
+                Movie m = Movie.newInstance(result);
+                if(m!=null) {
+                    movies.add(m);
+                }
             }
             return movies;
         }

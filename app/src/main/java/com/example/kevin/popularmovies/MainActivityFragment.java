@@ -239,7 +239,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         @Override
         protected ArrayList<Movie> doInBackground(String... params) {
 
-            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=" + R.string.moviedb_api_key;
+            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=b002976a12de8c9c6ae1d89a3d0faea2";
             Uri builtUri = Uri.parse(BASEURL);
 
             // hit api if necessary...

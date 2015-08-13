@@ -37,6 +37,9 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
     private int mGridPosition = 0;
     private String mCurrentSort;
     private String mJsonMovieData;
+    private Context mContext;
+    private MovieAdapter mMovieAdapter;
+    private GridView mGrid;
 
     public MainActivityFragment() {
     }
@@ -86,9 +89,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         mCallback=null;
     }
 
-    private Context mContext;
-    private MovieAdapter mMovieAdapter;
-    private GridView mGrid;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -205,6 +206,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
                         .resize(158,237)
                         .centerCrop()
                         .into(holder.moviePoster);
+                convertView.setTag(holder);
             }
 
             if(holder.movieInfo.mID !=movieInfo.mID){
@@ -227,6 +229,8 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
 
     public class MovieDownloader extends AsyncTask<String,Void, ArrayList<Movie>> {
         final String LOG_TAG = "MovieJsonDownload";
+        final String API_KEY = "";
+
         ArrayList<Movie> movies = new ArrayList<>();
         @Override
         protected void onPostExecute(ArrayList<Movie> movieList) {
@@ -238,8 +242,11 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
 
         @Override
         protected ArrayList<Movie> doInBackground(String... params) {
+            if(API_KEY==null || API_KEY==""){
+                Log.e(LOG_TAG, "API_KEY=" + API_KEY + ". Did you forget to add your own?");
+            }
 
-            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=b002976a12de8c9c6ae1d89a3d0faea2";
+            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=" + API_KEY;
             Uri builtUri = Uri.parse(BASEURL);
 
             // hit api if necessary...
@@ -262,7 +269,6 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
         ArrayList<Movie> getMoviesFromJson(String json) throws JSONException {
             ArrayList<Movie> movies = new ArrayList<>();
             final String RESULTS = "results";
-
 
             JSONArray results= new JSONObject(json).getJSONArray(RESULTS);
             for(int i=0;i< results.length();i++){

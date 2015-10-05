@@ -33,7 +33,7 @@ public class MovieCache {
         }
     }
 
-    private static int getVersion (final Context context) {
+    private static int getVersion(final Context context) {
         try {
             final PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_META_DATA);
             return pInfo.versionCode;
@@ -53,15 +53,14 @@ public class MovieCache {
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         return movie;
     }
 
-    public static void CacheMovie (final Context context, final Movie movie, final String key) throws IOException {
+    public static void CacheMovie(final Context context, final Movie movie, final String key) throws IOException {
         final DiskLruCache cache = getCache(context);
 
         if (cache != null) {

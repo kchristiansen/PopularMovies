@@ -13,9 +13,9 @@ import java.net.URL;
 /**
  * Created by kchristiansen on 7/15/15.
  */
-class JsonDataFetch {
-    public static String fetchJson(Uri uri) {
-
+final class JsonDataFetch {
+    private JsonDataFetch() { }
+    public static String fetchJson(final Uri uri) {
         final String LOG_TAG = JsonDataFetch.class.getSimpleName();
         HttpURLConnection urlConnection = null;
         BufferedReader reader = null;

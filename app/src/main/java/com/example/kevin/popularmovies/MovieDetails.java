@@ -50,84 +50,79 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         return fragment;
     }
 
-    private static Movie deserializeMovie(String movieJson){
+    private static Movie deserializeMovie(final String movieJson) {
         Movie movie = null;
-        try{
+        try {
             JSONObject jsonObject = new JSONObject(movieJson);
             movie = Movie.newInstance(jsonObject);
-        }
-        catch(JSONException e){
+        } catch(JSONException e) {
             e.printStackTrace();
         }
         return movie;
     }
 
-    public MovieDetails() {
-        // Required empty public constructor
-    }
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+                             final Bundle savedInstanceState) {
         API_KEY = getResources().getString(R.string.API_KEY);
         mContext = getActivity();
         mRootView = inflater.inflate(R.layout.fragment_movie_details, container, false);
-        mTrailerList = (LinearLayout)mRootView.findViewById(R.id.tableTrailers);
-        mReviewList = (LinearLayout)mRootView.findViewById(R.id.tableReviews);
+        mTrailerList = (LinearLayout) mRootView.findViewById(R.id.tableTrailers);
+        mReviewList = (LinearLayout) mRootView.findViewById(R.id.tableReviews);
         mFavButton = (CheckBox) mRootView.findViewById(R.id.buttonFavorite);
 
 
         Bundle args = getArguments();
 
-        if(args==null) return mRootView;
+        if (args == null) {
+            return mRootView;
+        }
 
         Movie movie = deserializeMovie(args.getString("movie"));
 
-        if(movie!=null)
-        {
-            final String movieID = movie.mID;
+        if (movie != null) {
             updateMovie(movie);
         }
 
         return mRootView;
     }
 
-    private void setupFavoriteButton(final String movieID){
+    private void setupFavoriteButton(final String movieID) {
         // set initial button state
         new GetFavoriteSetting().execute(movieID);
     }
 
-    private void getReviews(String movieID) {
+    private void getReviews(final String movieID) {
         mReviewList.removeAllViews();
         new ReviewInfoDownloader().execute(movieID);
     }
-    private void getTrailers(String movieID) {
+    private void getTrailers(final String movieID) {
         mTrailerList.removeAllViews();
         new TrailerInfoDownloader().execute(movieID);
     }
 
     public class ReviewInfoDownloader extends AsyncTask<String, Void, ArrayList<Review>> {
         @Override
-        protected void onPostExecute(ArrayList<Review> reviews) {
+        protected void onPostExecute(final ArrayList<Review> reviews) {
             // Update layout...
             int size = reviews.size();
-            if(size>3){
-                size=3;
+            if (size > 3) {
+                size = 3;
                 Button viewAllButton = (Button) mRootView.findViewById(R.id.buttonAllReviews);
                 viewAllButton.setVisibility(View.VISIBLE);
             }
 
             View reviewView = null;
-            if(size>0){
+            if (size > 0) {
                 mRootView.findViewById(R.id.textNoReviews).setVisibility(View.GONE);
             }
 
-            for(int i=0;i<size;i++){
+            for (int i = 0; i < size; i++) {
                 reviewView = View.inflate(getActivity(), R.layout.review_list_item, null);
                 Review r = reviews.get(i);
-                TextView author = (TextView)reviewView.findViewById(R.id.reviewerName);
+                TextView author = (TextView) reviewView.findViewById(R.id.reviewerName);
                 author.setText(r.author);
-                TextView content = (TextView)reviewView.findViewById(R.id.reviewContent);
+                TextView content = (TextView) reviewView.findViewById(R.id.reviewContent);
                 content.setText(r.content);
 
                 mReviewList.addView(reviewView);
@@ -135,10 +130,13 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         }
 
         @Override
-        protected ArrayList<Review> doInBackground(String... params) {
-            String reviewsUrl = "http://api.themoviedb.org/3/movie/"+params[0]+"/reviews?api_key=" + API_KEY;
+        protected ArrayList<Review> doInBackground(final String... params) {
+            String reviewsUrl = "http://api.themoviedb.org/3/movie/"
+                    + params[0]
+                    + "/reviews?api_key="
+                    + API_KEY;
             Uri uri = Uri.parse(reviewsUrl);
-            if(mReviewData==null || mReviewData=="") {
+            if (mReviewData == null || mReviewData == "") {
                 Log.v(LOG_TAG, "Hitting movie api: " + uri.toString());
                 mReviewData = JsonDataFetch.fetchJson(uri);
             }
@@ -147,26 +145,26 @@ public class MovieDetails extends android.support.v4.app.Fragment {
 
             try {
                 reviews = getReviewsFromJson(mReviewData);
-            }
-            catch (JSONException e){
+            } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
             return reviews;
         }
 
-        private ArrayList<Review> getReviewsFromJson(String json) throws JSONException {
-            ArrayList<Review> reviews = new ArrayList<>();
+        private ArrayList<Review> getReviewsFromJson(final String json) throws JSONException {
+            final ArrayList<Review> reviews = new ArrayList<>();
             final String RESULTS = "results";
+            final JSONArray results = new JSONObject(json).getJSONArray(RESULTS);
 
-            JSONArray results= new JSONObject(json).getJSONArray(RESULTS);
-            for(int i=0;i< results.length();i++){
+            for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
                 Review r = Review.newInstance(result);
-                if(r!=null) {
+                if (r != null) {
                     reviews.add(r);
                 }
             }
+
             return reviews;
         }
     }
@@ -191,47 +189,49 @@ public class MovieDetails extends android.support.v4.app.Fragment {
             };
 
             Cursor c = db.query(FavoritesContract.FavoritesEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
-            return c.getCount()>0;
+            return c.getCount() > 0;
         }
     }
 
-    public class TrailerInfoDownloader extends AsyncTask<String,Void,ArrayList<Trailer>>{
+    public class TrailerInfoDownloader extends AsyncTask<String, Void, ArrayList<Trailer>> {
 
         @Override
-        protected void onPostExecute(ArrayList<Trailer> trailers) {
+        protected void onPostExecute(final ArrayList<Trailer> trailers) {
             // Update layout...
             int size = trailers.size();
-            if(size>3){
-                size=3;
+            if (size > 3) {
+                size = 3;
                 Button viewAllButton = (Button) mRootView.findViewById(R.id.buttonAllTrailers);
                 viewAllButton.setVisibility(View.VISIBLE);
             }
 
             View trailerView = null;
 
-            for(int i=0;i<size;i++){
+            for (int i = 0; i < size; i++) {
                 Trailer t = trailers.get(i);
                 final Uri uri = Uri.parse(t.Uri);
                 trailerView = View.inflate(getActivity(), R.layout.trailer_list_item, null);
                 trailerView.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(final View v) {
                         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                         startActivity(intent);
                     }
                 });
-                TextView title = (TextView)trailerView.findViewById(R.id.trailerTitle);
+                TextView title = (TextView) trailerView.findViewById(R.id.trailerTitle);
                 title.setText(t.name);
                 mTrailerList.addView(trailerView);
             }
         }
 
         @Override
-        protected ArrayList<Trailer> doInBackground(String... params) {
+        protected ArrayList<Trailer> doInBackground(final String... params) {
 
-            String trailersUrl = "http://api.themoviedb.org/3/movie/"+params[0]+"/videos?api_key=" + API_KEY;
+            String trailersUrl = "http://api.themoviedb.org/3/movie/"
+                    + params[0]
+                    + "/videos?api_key=" + API_KEY;
             Uri uri = Uri.parse(trailersUrl);
-            if(mTrailerData==null || mTrailerData=="") {
+            if (mTrailerData == null || mTrailerData == "") {
                 Log.v(LOG_TAG, "Hitting movie api: " + uri.toString());
                 mTrailerData = JsonDataFetch.fetchJson(uri);
             }
@@ -240,23 +240,22 @@ public class MovieDetails extends android.support.v4.app.Fragment {
 
             try {
                 trailers = getTrailersFromJson(mTrailerData);
-            }
-            catch (JSONException e){
+            } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
             return trailers;
         }
 
-        private ArrayList<Trailer> getTrailersFromJson(String json) throws JSONException {
+        private ArrayList<Trailer> getTrailersFromJson(final String json) throws JSONException {
             ArrayList<Trailer> trailers = new ArrayList<>();
             final String RESULTS = "results";
 
-            JSONArray results= new JSONObject(json).getJSONArray(RESULTS);
-            for(int i=0;i< results.length();i++){
+            JSONArray results = new JSONObject(json).getJSONArray(RESULTS);
+            for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
                 Trailer t = Trailer.newInstance(result);
-                if(t!=null) {
+                if (t != null) {
                     trailers.add(t);
                 }
             }
@@ -264,7 +263,7 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         }
     }
 
-    public void updateMovie(Movie m) {
+    public void updateMovie(final Movie m) {
         mRootView.findViewById(R.id.instruction_panel).setVisibility(View.GONE);
 
         mMovie = m;
@@ -284,7 +283,7 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         starRating.setRating(Float.parseFloat(m.mRating) / 2);
         Picasso.with(getActivity())
                 .load(baseMovieDbImageUrl + m.mPosterUri)
-                .resize(158,237)
+                .resize(158, 237)
                 .centerInside()
                 .into(poster);
 
@@ -294,7 +293,7 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         mFavButton.setOnCheckedChangeListener(null);
         mFavButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
                 final String selection = FavoritesContract.FavoritesEntry.COLUMN_ID + " =?";
                 final String[] selectionArgs = {
                         mMovie.mID
@@ -310,24 +309,24 @@ public class MovieDetails extends android.support.v4.app.Fragment {
         });
 
         setupFavoriteButton(m.mID);
-        mTrailerData=null;
-        mReviewData=null;
+        mTrailerData = null;
+        mReviewData = null;
         getReviews(m.mID);
         getTrailers(m.mID);
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(final Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("movie", mMovie.toJSON());
     }
 
     @Override
-    public void onViewStateRestored(Bundle savedInstanceState) {
+    public void onViewStateRestored(final Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
-        if(savedInstanceState!=null) {
+        if (savedInstanceState != null) {
             mMovie = deserializeMovie(savedInstanceState.getString("movie"));
-            if(mMovie!=null) {
+            if (mMovie != null) {
                 updateMovie(mMovie);
             }
         }

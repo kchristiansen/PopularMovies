@@ -8,25 +8,26 @@ import android.view.View;
 public class MainActivity extends ActionBarActivity
         implements MainActivityFragment.OnMovieSelectedListener {
 
-    boolean mIsDualPane;
+    private Boolean mIsDualPane;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
 
         View detailView = findViewById(R.id.details_frag);
 
-        if(detailView !=null && detailView != null){
+        if (detailView != null) {
             mIsDualPane = true;
-            if(savedInstanceState!=null){
+            if (savedInstanceState != null) {
                 return;
             }
         }
     }
 
     @Override
-    public void onMovieSelected(Movie m) {
+    public void onMovieSelected(final Movie m) {
         MovieDetails detailFragment = (MovieDetails) getSupportFragmentManager().findFragmentById(R.id.details_frag);
         if (mIsDualPane) {
             detailFragment.updateMovie(m);

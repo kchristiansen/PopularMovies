@@ -5,5 +5,5 @@
     <string name="moviedb_base_image_url">http://image.tmdb.org/t/p/</string>
     <string name="moviedb_image_size">w185</string>
     <string name="title_activity_detail">DetailActivity</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="no_internet_connection">No internet connection.\n We can\'t display movies without a connection</string>
 </resources>

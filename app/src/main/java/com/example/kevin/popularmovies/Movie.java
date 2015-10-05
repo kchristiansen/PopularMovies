@@ -7,14 +7,6 @@ import org.json.JSONObject;
  * Created by kchristiansen on 7/22/15.
  */
 public class Movie {
-
-    final static String ID = "id";
-    final static String RATING = "vote_average";
-    final static String TITLE = "title";
-    final static String SYNOPSIS = "overview";
-    final static String RELEASEDATE = "release_date";
-    final static String POSTER = "poster_path";
-
     String mID;
     String mTitle;
     String mSynopsis;
@@ -22,9 +14,12 @@ public class Movie {
     String releaseDate;
     String mPosterUri;
 
-    public Movie() {
-
-    }
+    final static String ID = "id";
+    final static String RATING = "vote_average";
+    final static String TITLE = "title";
+    final static String SYNOPSIS = "overview";
+    final static String RELEASEDATE = "release_date";
+    final static String POSTER = "poster_path";
 
     public static Movie newInstance(JSONObject jsonMovieObject) {
         Movie m = new Movie();

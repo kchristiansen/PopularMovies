@@ -1,8 +1,13 @@
+<FrameLayout
+    android:layout_height="match_parent" android:layout_width="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
 <ScrollView
     android:id="@+id/fragment_movie_detail"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.example.kevin.popularmovies.MovieDetails"
+    android:background="@android:color/white"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
     android:padding="10dp">
@@ -22,7 +27,8 @@
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp">
                 <TextView
                     android:id="@+id/detail_title"
                     android:layout_width="wrap_content"
@@ -40,9 +46,14 @@
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="right">
-
+            android:layout_height="wrap_content">
+            <CheckBox
+                android:id="@+id/buttonFavorite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:layout_weight="10"
+                android:text="Favorite"/>
             <RatingBar
                 android:id="@+id/detail_rating_stars"
                 style="?android:ratingBarStyleSmall"
@@ -109,8 +120,15 @@
             android:layout_height="wrap_content"
             android:textSize="18sp"
             android:text="Reviews:"/>
-        <TableLayout
+        <TextView
+            android:id="@+id/textNoReviews"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nobody has reviewed this movie"
+            android:gravity="center"/>
+        <LinearLayout
             android:id="@+id/tableReviews"
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
         <Button
@@ -118,7 +136,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ALL REVIEWS"
-            android:layout_gravity="center"/>
+            android:layout_gravity="center"
+            android:visibility="gone"/>
     </LinearLayout>
 </ScrollView>
-
+    <LinearLayout
+        android:id="@+id/instruction_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/white">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="30dp"
+            android:text="Choose a movie"/>
+    </LinearLayout>
+</FrameLayout>

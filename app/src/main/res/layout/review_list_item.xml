@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <TextView
+        android:id="@+id/reviewerName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="Reviewer Name"/>
+    <TextView
+        android:id="@+id/reviewContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Perfect. Thanks. I have tried that before, but didn't work,
+        because I used android:inputType=textinstead of android:singleLine= true (which is supposed to be deprecated). But now I'm gonna stick with android:singleLine= true. Muchas gracias."
+        android:ellipsize="end"
+        android:maxLines="4"/>
+</LinearLayout>

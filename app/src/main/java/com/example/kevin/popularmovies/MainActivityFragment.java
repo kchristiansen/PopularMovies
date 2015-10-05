@@ -3,6 +3,8 @@ package com.example.kevin.popularmovies;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -25,6 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 
@@ -40,6 +43,8 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
     private Context mContext;
     private MovieAdapter mMovieAdapter;
     private GridView mGrid;
+
+    private final int MAX_CACHE_SIZE = 1024 * 1024;
 
     public MainActivityFragment() {
     }
@@ -119,6 +124,9 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
                 mCallback.onMovieSelected(m);
             }
         });
+        if (mGrid.getSelectedItem() == null) {
+            mGrid.setSelection(0);
+        }
         return rootView;
     }
 
@@ -203,8 +211,8 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
                 holder.moviePoster.setImageResource(R.mipmap.ic_launcher);
                 Picasso.with(mContext)
                         .load(imageUrl + movieInfo.mPosterUri)
-                        .resize(158,237)
-                        .centerCrop()
+                        //.resize(158,237)
+                        //.centerCrop()
                         .into(holder.moviePoster);
                 convertView.setTag(holder);
             }
@@ -213,8 +221,8 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
                 holder.movieInfo=movieInfo;
                 Picasso.with(mContext)
                         .load(imageUrl + movieInfo.mPosterUri)
-                        .resize(158,237)
-                        .centerInside()
+                        //.resize(158,237)
+                        //.centerInside()
                         .into(holder.moviePoster);
             }
 
@@ -229,7 +237,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
 
     public class MovieDownloader extends AsyncTask<String,Void, ArrayList<Movie>> {
         final String LOG_TAG = "MovieJsonDownload";
-        final String API_KEY = "";
+        final String API_KEY = getResources().getString(R.string.API_KEY);
 
         ArrayList<Movie> movies = new ArrayList<>();
         @Override
@@ -238,6 +246,7 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
             // Update adapter...
             mMovieAdapter.mMovies = movieList;
             mMovieAdapter.notifyDataSetChanged();
+
         }
 
         @Override
@@ -246,22 +255,58 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
                 Log.e(LOG_TAG, "API_KEY=" + API_KEY + ". Did you forget to add your own?");
             }
 
-            String BASEURL = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=" + API_KEY;
-            Uri builtUri = Uri.parse(BASEURL);
+            if(mCurrentSort.equals("favorite")) {
+                // get ids from sqlite db
+                FavoritesDbHelper dbHelper = new FavoritesDbHelper(getActivity());
+                final SQLiteDatabase db = dbHelper.getWritableDatabase();
+                final String[] columns = {FavoritesContract.FavoritesEntry.COLUMN_ID};
 
-            // hit api if necessary...
-            if(mJsonMovieData==null || mJsonMovieData=="") {
-                // Will contain the raw JSON response as a string.
-                Log.v(LOG_TAG, "Hitting movie api: " + builtUri.toString() );
-                mJsonMovieData = JsonDataFetch.fetchJson(builtUri);
-            }
+                Cursor c = db.query(FavoritesContract.FavoritesEntry.TABLE_NAME, columns, null, null, null, null, null);
+                while(c.moveToNext()){
+                    String movieId = c.getString(0);
+                    // get the cached movies from disklru cache
+                    Movie m = MovieCache.GetMovieFromCache(mContext, movieId);
+                    if (m == null) {
+                        // make api calls if necessary
+                        Uri builtUri = Uri.parse("http://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + API_KEY);
+                        String jsonData = JsonDataFetch.fetchJson(builtUri);
 
-            try {
-                movies = getMoviesFromJson(mJsonMovieData);
+                        if(jsonData != null) {
+                            JSONObject jObjMovie = null;
+                            try {
+                                jObjMovie = new JSONObject(jsonData);
+                                m = Movie.newInstance(jObjMovie);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    if (m != null) {
+                        // add to movie list
+                        movies.add(m);
+                    }
+                }
             }
-            catch (JSONException e){
-                Log.e(LOG_TAG, e.getMessage(), e);
-                e.printStackTrace();
+            else {
+                String baseUrl = "http://api.themoviedb.org/3/discover/movie?sort_by=" + mCurrentSort + "&api_key=" + API_KEY;
+
+                Uri builtUri = Uri.parse(baseUrl);
+
+                // hit api if necessary...
+                if (mJsonMovieData == null || mJsonMovieData == "") {
+                    // Will contain the raw JSON response as a string.
+                    Log.v(LOG_TAG, "Hitting movie api: " + builtUri.toString());
+                    mJsonMovieData = JsonDataFetch.fetchJson(builtUri);
+                }
+
+                if (mJsonMovieData != null) {
+                    try {
+                        movies = getMoviesFromJson(mJsonMovieData);
+                    } catch (JSONException e) {
+                        Log.e(LOG_TAG, e.getMessage(), e);
+                        e.printStackTrace();
+                    }
+                }
             }
             return movies;
         }
@@ -273,7 +318,13 @@ public class MainActivityFragment extends android.support.v4.app.Fragment {
             JSONArray results= new JSONObject(json).getJSONArray(RESULTS);
             for(int i=0;i< results.length();i++){
                 JSONObject result = results.getJSONObject(i);
+
                 Movie m = Movie.newInstance(result);
+                try {
+                    MovieCache.CacheMovie(mContext, m, m.mID);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 if(m!=null) {
                     movies.add(m);
                 }

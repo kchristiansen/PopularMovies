@@ -3,9 +3,11 @@
     <string-array name="pref_sortby">
         <item>Popularity</item>
         <item>Rating</item>
+        <item>Favorites</item>
     </string-array>
     <string-array name="pref_sortby_values">
         <item>popularity.desc</item>
         <item>vote_average.desc</item>
+        <item>favorite</item>
     </string-array>
 </resources>
